@@ -14,7 +14,7 @@ class ConcentrationViewController: UIViewController {
     
     var numberOfPairsOfCards: Int {
         get {
-            return (cardButtons.count + 1)/2
+            return (visibleCardButtons.count + 1)/2
         }
     }
     
@@ -30,10 +30,16 @@ class ConcentrationViewController: UIViewController {
             .strokeColor: UIColor.black,
             .strokeWidth: 5.0
         ]
-        let attributedString = NSAttributedString(string: "Flips: \(flipCount)", attributes: attributes)
+        let attributedString = NSAttributedString(
+            string: traitCollection.verticalSizeClass == .compact ? "Flips\n\(flipCount)" : "Flips: \(flipCount)", attributes: attributes)
         flipCountLabel.attributedText = attributedString
     }
 
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        updateFlipCountLabel()
+    }
+    
     @IBOutlet private weak var flipCountLabel: UILabel! {
         didSet {
             updateFlipCountLabel()
@@ -42,10 +48,19 @@ class ConcentrationViewController: UIViewController {
     
     @IBOutlet private var cardButtons: [UIButton]!
     
+    private var visibleCardButtons: [UIButton]! {
+        return cardButtons?.filter { !$0.superview!.isHidden}
+    }
+    
+    // when relayout happens, update view from model
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        updateViewFromModel()
+    }
     
     @IBAction private func touchCard(_ sender: UIButton) {
         flipCount += 1
-        if let cardNumber = cardButtons.index(of: sender) {
+        if let cardNumber = visibleCardButtons.index(of: sender) {
             //flipCard(withEmoji: emojiChoices[cardNumber], on: sender)
             game.chooseCard(at: cardNumber)
             updateViewFromModel()
@@ -55,9 +70,9 @@ class ConcentrationViewController: UIViewController {
     }
     
     private func updateViewFromModel() {
-        if cardButtons != nil {
-            for index in cardButtons.indices {
-                let button = cardButtons[index]
+        if visibleCardButtons != nil {
+            for index in visibleCardButtons.indices {
+                let button = visibleCardButtons[index]
                 let card = game.cards[index]
                 
                 if card.isFaceUp {
@@ -114,8 +129,8 @@ class ConcentrationViewController: UIViewController {
     }
     
     @IBAction func startNewGame(_ sender: UIButton) {
-        for index in cardButtons.indices {
-            let button = cardButtons[index]
+        for index in visibleCardButtons.indices {
+            let button = visibleCardButtons[index]
             button.setTitle("", for: UIControlState.normal)
             button.backgroundColor = #colorLiteral(red: 0.01680417731, green: 0.1983509958, blue: 1, alpha: 1)
             
